@@ -18,10 +18,11 @@ PROMPT_TEMPLATE = """You are writing a training-style tutorial in markdown.
 
 Instructions:
 - Use the section material below to write a clear, step-by-step guide.
-- Reference screenshots from the img folder using their hash names, e.g. ![](img/<hash>.jpg).
+- Reference screenshots from the img folder using their hash names, e.g. ![caption](img/<hash>.jpg). Produce a caption for every image.
 - You do not need to use every selected image; only include screenshots that add value to the documentation.
-- The selections come from a small model and may be inaccurate; prioritize tasks and speech over selections.
-- Speech fragments may contain typos or misheard terms; correct them when needed.
+- The section description task description, and image descriptions and selections come from small language models, and may be inaccurate; prioritize information from speech fragments as ground truth.
+- Speech fragments, in turn, may contain typos or misheard terms; correct them when needed.
+- Do not add any information that is not directly supported by the speech fragments. Avoid adding external knowledge, that might be obsolete.
 - Keep the output strictly in markdown.
 - Write the markdown in this language: {language}.
 

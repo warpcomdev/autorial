@@ -117,4 +117,17 @@ python -m modules.markdown <combine_json> <selection_json> <output_dir> -c confi
 
 ## License
 
-TBD
+MIT
+
+## Other ideas
+
+- Use embeddings to improve selection, by matching images to task by similarity (filtered by time frame), eg:
+    - Embed all images, grouped by task timeframe.
+    - Cluster task images to detect distint UIs / contexts.
+    - Generate a description of each image cluster.
+    - Filter out irrelevant contexts, like side-tracks.
+    - Determine how speeches and contexts interleave, because a context may be revisited later along the speech, as actions are performed.
+    - Select representative images per relevant context and timeframe.
+- Improve segmentation after selection, refining sections and tasks based on selected images.
+    - Maybe turning back the sections and tasks into a timeline of speeches and contexts with description, and then re-segmenting that.
+- Maybe let the model use tools to query the keyframe DB for images matching certain criteria.

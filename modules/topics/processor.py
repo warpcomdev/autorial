@@ -154,7 +154,7 @@ def generate_topics(
     if not speech_doc.segments:
         output_doc = OutputDocument(video=speech_doc.video, topics=[])
         with json_path.open("w", encoding="utf-8") as handle:
-            json.dump(dataclasses.asdict(output_doc), handle, indent=2)
+            json.dump(dataclasses.asdict(output_doc), handle, indent=2, ensure_ascii=False)
         return output_doc
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -188,7 +188,7 @@ def generate_topics(
 
     output_doc = _model_to_output(speech_doc.video, topics_model)
     with json_path.open("w", encoding="utf-8") as handle:
-        json.dump(dataclasses.asdict(output_doc), handle, indent=2)
+        json.dump(dataclasses.asdict(output_doc), handle, indent=2, ensure_ascii=False)
 
     return output_doc
 

@@ -250,7 +250,7 @@ def select_keyframes(
 
     output_doc = SelectionDocument(video=combine_doc.video, topics=selection_topics)
     with json_path.open("w", encoding="utf-8") as handle:
-        json.dump(dataclasses.asdict(output_doc), handle, indent=2)
+        json.dump(dataclasses.asdict(output_doc), handle, indent=2, ensure_ascii=False)
 
     return output_doc
 
@@ -292,16 +292,24 @@ def _select_for_task(
         content = ""
         invalid_content: str | None = None
         for attempt in range(1, config.max_retries + 2):
-            response = chat(
-                model=config.model_name,
-                messages=[{"role": "user", "content": prompt, "images": [str(p) for p in image_paths]}],
-                format=_SelectionResponse.model_json_schema(),
-                options={
-                    "temperature": config.temperature,
-                    "num_ctx": config.context_window,
-                    "num_predict": config.num_predict,
-                },
-            )
+            try:
+                response = chat(
+                    model=config.model_name,
+                    messages=[
+                        {"role": "user", "content": prompt, "images": [str(p) for p in image_paths]}
+                    ],
+                    format=_SelectionResponse.model_json_schema(),
+                    options={
+                        "temperature": config.temperature,
+                        "num_ctx": config.context_window,
+                        "num_predict": config.num_predict,
+                    },
+                )
+            except Exception as exc:
+                logging.warning("Ollama request failed (attempt %d): %s", attempt, exc)
+                if attempt <= config.max_retries and config.retry_backoff > 0:
+                    time.sleep(config.retry_backoff * attempt)
+                continue
             content = response.message.content or ""
             if content.strip():
                 try:
@@ -354,14 +362,31 @@ def _select_task_worker(args: tuple[Path, _TaskPayload, SelectionConfig]) -> _Ta
         payload.task_index,
         payload.task.task,
     )
-    selections = _select_for_task(
-        db_path,
-        payload.topic_index,
-        payload.task_index,
-        payload.topic,
-        payload.task,
-        config,
-    )
+    try:
+        selections = _select_for_task(
+            db_path,
+            payload.topic_index,
+            payload.task_index,
+            payload.topic,
+            payload.task,
+            config,
+        )
+    except Exception as exc:
+        _save_request_error(
+            db_path,
+            payload.topic_index,
+            payload.task_index,
+            payload.task.task,
+            str(exc),
+        )
+        logging.warning(
+            "  Failed topic %d task %d: %s (%s)",
+            payload.topic_index,
+            payload.task_index,
+            payload.task.task,
+            exc,
+        )
+        selections = []
     logging.info(
         "  Completed topic %d task %d: %s (%d selections)",
         payload.topic_index,
@@ -415,6 +440,21 @@ def _save_invalid_response(
     errors_dir = db_path.parent / "selection_errors"
     errors_dir.mkdir(parents=True, exist_ok=True)
     filename = f"topic_{topic_index:03d}_task_{task_index:03d}.txt"
+    payload = f"Task: {task_title}\n\n{content}"
+    (errors_dir / filename).write_text(payload, encoding="utf-8")
+
+
+def _save_request_error(
+    db_path: Path,
+    topic_index: int,
+    task_index: int,
+    task_title: str,
+    content: str,
+) -> None:
+    """Persist request errors for debugging."""
+    errors_dir = db_path.parent / "selection_errors"
+    errors_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"topic_{topic_index:03d}_task_{task_index:03d}_request.txt"
     payload = f"Task: {task_title}\n\n{content}"
     (errors_dir / filename).write_text(payload, encoding="utf-8")
 def _watermark_image(path: Path, index: int) -> None:

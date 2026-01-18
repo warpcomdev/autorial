@@ -41,8 +41,9 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = configparser.ConfigParser()
-    if args.config is not None and args.config.exists():
-        parser.read(args.config, encoding="utf-8")
+    config_path = args.config or Path(__file__).parent / "config.ini"
+    if config_path.exists():
+        parser.read(config_path, encoding="utf-8")
 
     stages = ["speech", "hash", "topics", "combine", "selection", "markdown"]
     start_index = 0

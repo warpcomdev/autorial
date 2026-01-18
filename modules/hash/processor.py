@@ -159,7 +159,7 @@ def hash_video_frames(
 
     output_doc = OutputDocument(video=video_path.name, frames=frame_hashes)
     with json_path.open("w", encoding="utf-8") as handle:
-        json.dump(dataclasses.asdict(output_doc), handle, indent=2)
+        json.dump(dataclasses.asdict(output_doc), handle, indent=2, ensure_ascii=False)
 
     connection.close()
     return output_doc

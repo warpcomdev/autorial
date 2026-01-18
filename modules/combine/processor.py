@@ -157,7 +157,7 @@ def combine_outputs(
     final_topics = _merge_empty_tasks_across_topics(combined_topics)
     output_doc = CombinedDocument(video=video_name, topics=final_topics)
     with json_path.open("w", encoding="utf-8") as handle:
-        json.dump(dataclasses.asdict(output_doc), handle, indent=2)
+        json.dump(dataclasses.asdict(output_doc), handle, indent=2, ensure_ascii=False)
 
     return output_doc
 
@@ -260,7 +260,14 @@ def _combine_tasks(
     speech_segments: list[SpeechSegment],
     frames: list[FrameHash],
 ) -> list[CombinedTask]:
-    """Combine tasks for a topic with aligned speech and keyframes."""
+    """Combine tasks for a topic with aligned speech and keyframes.
+
+    Policy:
+        Tasks with no speech segments are retained here and later merged by
+        ``_merge_empty_tasks_across_topics`` into the previous task within the
+        same topic, or the last task of the previous topic, with keyframes
+        transferred along.
+    """
     tasks_sorted = sorted(topic.tasks, key=lambda task: task.start)
     if not tasks_sorted:
         tasks_sorted = [TaskItem(start=topic.start, task="Overview of this section")]
@@ -288,30 +295,50 @@ def _combine_tasks(
 def _merge_empty_tasks_across_topics(
     topics: list[CombinedTopic],
 ) -> list[CombinedTopic]:
-    """Remove empty tasks, merging their keyframes into the previous task."""
+    """Remove tasks without speech, merging their keyframes into prior tasks.
+
+    Policy:
+        - Empty tasks merge into the previous task in the same topic when
+          available.
+        - If an empty task is the first in a topic, its keyframes merge into
+          the last task of the previous topic.
+        - Tasks with speech remain in place.
+    """
     merged_topics: list[CombinedTopic] = []
-    last_task_location: tuple[int, int] | None = None
+    previous_topic_last_task: tuple[int, int] | None = None
     for topic in topics:
         merged_tasks: list[CombinedTask] = []
+        previous_task_index: int | None = None
         for task in topic.tasks:
             if task.speech_segments:
                 merged_tasks.append(task)
-                last_task_location = (len(merged_topics), len(merged_tasks) - 1)
+                previous_task_index = len(merged_tasks) - 1
                 continue
-            if last_task_location is None:
+            if previous_task_index is not None:
+                target_task = merged_tasks[previous_task_index]
+                merged_tasks[previous_task_index] = CombinedTask(
+                    start=target_task.start,
+                    task=target_task.task,
+                    speech_segments=target_task.speech_segments,
+                    keyframes=_merge_keyframes(target_task.keyframes, task.keyframes),
+                )
                 continue
-            topic_idx, task_idx = last_task_location
+            if previous_topic_last_task is None:
+                continue
+            topic_idx, task_idx = previous_topic_last_task
+            if topic_idx >= len(merged_topics):
+                continue
             target_topic = merged_topics[topic_idx]
+            if task_idx >= len(target_topic.tasks):
+                continue
             target_task = target_topic.tasks[task_idx]
-            merged_keyframes = _merge_keyframes(target_task.keyframes, task.keyframes)
-            updated_task = CombinedTask(
+            updated_tasks = list(target_topic.tasks)
+            updated_tasks[task_idx] = CombinedTask(
                 start=target_task.start,
                 task=target_task.task,
                 speech_segments=target_task.speech_segments,
-                keyframes=merged_keyframes,
+                keyframes=_merge_keyframes(target_task.keyframes, task.keyframes),
             )
-            updated_tasks = list(target_topic.tasks)
-            updated_tasks[task_idx] = updated_task
             merged_topics[topic_idx] = CombinedTopic(
                 start=target_topic.start,
                 topic=target_topic.topic,
@@ -321,6 +348,7 @@ def _merge_empty_tasks_across_topics(
             merged_topics.append(
                 CombinedTopic(start=topic.start, topic=topic.topic, tasks=merged_tasks),
             )
+            previous_topic_last_task = (len(merged_topics) - 1, len(merged_tasks) - 1)
     return merged_topics
 
 
