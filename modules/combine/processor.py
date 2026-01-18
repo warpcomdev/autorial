@@ -262,6 +262,13 @@ def _combine_tasks(
 ) -> list[CombinedTask]:
     """Combine tasks for a topic with aligned speech and keyframes."""
     tasks_sorted = sorted(topic.tasks, key=lambda task: task.start)
+    if not tasks_sorted:
+        tasks_sorted = [TaskItem(start=topic.start, task="Overview of this section")]
+    elif topic.start < tasks_sorted[0].start:
+        tasks_sorted.insert(
+            0,
+            TaskItem(start=topic.start, task="Overview of this section"),
+        )
     combined_tasks: list[CombinedTask] = []
     for task_index, task in enumerate(tasks_sorted):
         task_end = _next_task_start(tasks_sorted, task_index, topic_end)

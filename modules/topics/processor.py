@@ -25,6 +25,7 @@ Guidelines:
 - Tasks should be imperative or clearly actionable statements.
 - Use timestamps from the provided segments as anchors; keep topic/task starts within the segment ranges.
 - If there are no clear tasks for a topic, return an empty tasks list.
+- Prefer at least one task per topic when possible; if no explicit actions are present, add a single task like "Overview of this section" at the topic start.
 - Return only JSON that matches the provided schema.
 
 {keywords_block}

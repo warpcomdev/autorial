@@ -35,7 +35,11 @@ Section tasks and context:
 {section_context}
 """
 
-SUMMARY_TEMPLATE = """Summarize the following markdown section in a single paragraph.
+SUMMARY_TEMPLATE = """Summarize the following markdown section very briefly.
+Write the summary in this language: {language}.
+- Keep it to 1-2 short sentences.
+- Do not enumerate all tasks or actions; give only the general idea.
+- You may use multiple sentences if it reads better.
 
 Markdown:
 {markdown}
@@ -52,7 +56,6 @@ class MarkdownConfig:
     num_predict: int = 32000
     summary_num_predict: int = 1024
     language: str = "es"
-    image_kind: str = "original"
     image_format: str = "jpg"
 
 
@@ -218,7 +221,7 @@ def generate_markdown(
         section_path = video_dir / section_filename
         section_path.write_text(markdown, encoding="utf-8")
 
-        summary_prompt = SUMMARY_TEMPLATE.format(markdown=markdown)
+        summary_prompt = SUMMARY_TEMPLATE.format(markdown=markdown, language=config.language)
         summary = _call_llm(summary_prompt, config, num_predict=config.summary_num_predict)
         logging.info("Summary %d: %s", index, summary)
         summaries.append(
@@ -276,7 +279,7 @@ def _extract_selected_images(
         output_path = img_dir / f"{hash_value}.{config.image_format}"
         if output_path.exists():
             continue
-        blob = _load_frame_blob(connection, hash_value, config.image_kind)
+        blob = _load_frame_blob(connection, hash_value, "original")
         if blob is None:
             continue
         output_path.write_bytes(blob)
@@ -328,10 +331,27 @@ def _build_section_context(topic: CombinedTopic, selection_topic: SelectionTopic
 def _write_readme(video_dir: Path, summaries: list[SectionSummary]) -> None:
     """Write the README.md with section summaries."""
     lines = ["# Tutorial Sections", ""]
+    lines.append("## Table of Contents")
     for summary in summaries:
-        lines.append(f"- [{summary.title}]({summary.markdown_file})")
-        lines.append(f"  - {summary.summary}")
+        anchor = _anchor_for_title(summary.title, summary.index)
+        lines.append(f"- [{summary.title}](#{anchor})")
+    lines.append("")
+    for summary in summaries:
+        anchor = _anchor_for_title(summary.title, summary.index)
+        lines.append(f"## {summary.title}")
+        lines.append("")
+        lines.append(f"{summary.summary}")
+        lines.append("")
+        lines.append(f"[Open section]({summary.markdown_file})")
+        lines.append("")
     (video_dir / "README.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def _anchor_for_title(title: str, index: int) -> str:
+    """Build a stable markdown anchor for section titles."""
+    normalized = "".join(char.lower() if char.isalnum() else "-" for char in title)
+    normalized = "-".join(filter(None, normalized.split("-")))
+    return f"section-{index:04d}-{normalized}"
 
 
 def _load_combine_document(path: Path) -> CombineDocument:
@@ -469,7 +489,6 @@ def parse_config(config: configparser.ConfigParser) -> MarkdownConfig:
         num_predict=get_int(section, "num_predict", defaults.num_predict),
         summary_num_predict=get_int(section, "summary_num_predict", defaults.summary_num_predict),
         language=str(section.get("language", defaults.language)),
-        image_kind=str(section.get("image_kind", defaults.image_kind)),
         image_format=str(section.get("image_format", defaults.image_format)),
     )
 

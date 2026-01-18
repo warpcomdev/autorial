@@ -276,7 +276,7 @@ def _extract_keyframes(
         "-i",
         str(video_path),
         "-vf",
-        f"fps={config.fps},showinfo",
+        f"fps={config.fps},showinfo,setsar=1",
         "-vsync",
         "vfr",
         "-start_number",
