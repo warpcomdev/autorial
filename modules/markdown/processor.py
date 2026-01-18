@@ -6,6 +6,7 @@ import dataclasses
 import json
 import logging
 import sqlite3
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -184,6 +185,7 @@ def generate_markdown(
     video_stem = Path(combine_doc.video).stem if combine_doc.video else combine_json_path.stem
     video_dir = output_dir / video_stem
     video_dir.mkdir(parents=True, exist_ok=True)
+    _prepare_output_dir(video_dir)
     img_dir = video_dir / "img"
     img_dir.mkdir(parents=True, exist_ok=True)
     db_path = video_dir / "frames.sqlite3"
@@ -248,6 +250,18 @@ def _call_llm(prompt: str, config: MarkdownConfig, num_predict: int) -> str:
     if not content:
         raise RuntimeError("Ollama returned an empty response")
     return content.strip()
+
+
+def _prepare_output_dir(video_dir: Path) -> None:
+    """Remove previous markdown and image outputs for a clean run."""
+    img_dir = video_dir / "img"
+    if img_dir.exists():
+        shutil.rmtree(img_dir)
+    for path in video_dir.glob("section_*.md"):
+        path.unlink(missing_ok=True)
+    readme_path = video_dir / "README.md"
+    if readme_path.exists():
+        readme_path.unlink()
 
 
 def _extract_selected_images(

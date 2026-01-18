@@ -304,7 +304,26 @@ def _select_for_task(
             )
             content = response.message.content or ""
             if content.strip():
-                break
+                try:
+                    selection_response = _SelectionResponse.model_validate_json(content)
+                except ValidationError:
+                    logging.warning("Invalid JSON response from Ollama (attempt %d)", attempt)
+                    invalid_content = content
+                    if attempt <= config.max_retries and config.retry_backoff > 0:
+                        time.sleep(config.retry_backoff * attempt)
+                    continue
+                selections: list[ImageSelection] = []
+                for item in selection_response.selections:
+                    if item.index < 0 or item.index >= len(index_to_hash):
+                        continue
+                    selections.append(
+                        ImageSelection(
+                            hash=index_to_hash[item.index],
+                            description=item.description,
+                            reason=item.reason,
+                        ),
+                    )
+                return selections
             logging.warning("Empty response from Ollama (attempt %d)", attempt)
             if attempt <= config.max_retries and config.retry_backoff > 0:
                 time.sleep(config.retry_backoff * attempt)
@@ -312,29 +331,6 @@ def _select_for_task(
                 logging.info("  Prompt:\n%s", prompt)
                 logging.warning("Skipping task due to empty response: %s", task.task)
                 return []
-
-        try:
-            selection_response = _SelectionResponse.model_validate_json(content)
-        except ValidationError:
-            logging.warning("Invalid JSON response from Ollama (attempt %d)", attempt)
-            invalid_content = content
-            if attempt <= config.max_retries and config.retry_backoff > 0:
-                time.sleep(config.retry_backoff * attempt)
-            content = ""
-            continue
-
-        selections: list[ImageSelection] = []
-        for item in selection_response.selections:
-            if item.index < 0 or item.index >= len(index_to_hash):
-                continue
-            selections.append(
-                ImageSelection(
-                    hash=index_to_hash[item.index],
-                    description=item.description,
-                    reason=item.reason,
-                ),
-            )
-        return selections
     if invalid_content:
         _save_invalid_response(
             db_path,
