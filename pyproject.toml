@@ -1,0 +1,19 @@
+[project]
+name = "autorial"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "faster-whisper>=1.2.1",
+    "imagehash>=4.3.1",
+    "ollama>=0.4.4",
+    "pydantic>=2.7.0",
+    "pillow>=10.4.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pyright>=1.1.408",
+]

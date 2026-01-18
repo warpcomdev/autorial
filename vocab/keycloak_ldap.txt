@@ -1,0 +1,104 @@
+Keycloak
+LDAP
+LDAPS
+OpenLDAP
+Active Directory
+Realm
+Client
+Client ID
+Client Secret
+Confidential Client
+Public Client
+Redirect URI
+SSO
+SAML
+OIDC
+OAuth2
+OpenID Connect
+JWT
+Access Token
+Refresh Token
+ID Token
+Token Exchange
+Scope
+Mappers
+Claims
+User Federation
+User Storage
+Identity Provider
+IdP
+Kerberos
+LDAP Bind
+Bind DN
+Base DN
+DN
+RDN
+OU
+CN
+UID
+User DN
+Group DN
+Group Mapper
+Role Mapper
+Sync
+Import Users
+Read Only LDAP
+Edit Mode
+Connection URL
+StartTLS
+TLS
+Certificate
+Truststore
+Keystore
+Service Account
+Admin Console
+Authentication Flow
+Browser Flow
+Direct Grant
+Password Grant
+PKCE
+CORS
+Frontend URL
+Backchannel
+Logout
+Session
+User Session
+Offline Session
+Required Actions
+Two-Factor Authentication
+OTP
+TOTP
+WebAuthn
+Brute Force Protection
+Events
+Event Listener
+SPI
+Adapter
+Client Scope
+Default Scope
+Optional Scope
+Protocol Mapper
+Attribute Mapper
+User Attribute
+Group
+Role
+Composite Role
+Realm Role
+Client Role
+Service Account Role
+Authorization
+Policy
+Permission
+Resource
+Scope Permission
+Client Authentication
+Private Key
+Public Key
+JWK
+JWKS
+Issuer
+Audience
+Token Endpoint
+UserInfo Endpoint
+Well-Known
+Discovery
